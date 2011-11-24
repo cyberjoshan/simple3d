@@ -29,7 +29,7 @@ Simple3D = function(canvasid)
 	this.perspectiveMatrix.perspective(30, this.canvas.width / this.canvas.height, 1, 10000);
 	//this.perspectiveMatrix.lookat(0, 0, 7, 0, 0, 0, 0, 1, 0);
 
-	this.meshes = [];
+	this.models = [];
 }
 
 
@@ -53,7 +53,7 @@ Simple3D.prototype.addBox = function()
 	// Create a box. On return 'gl' contains a 'box' property with
 	// the BufferObjects containing the arrays for vertices,
 	// normals, texture coords, and indices.
-	box.buffer = makeBox(gl);
+	box.mesh = makeBox(gl);
 
 	// Load an image to use. Returns a WebGLTexture object
 	box.spiritTexture = loadImageTexture(gl, "spirit.jpg");
@@ -64,7 +64,7 @@ Simple3D.prototype.addBox = function()
 	box.colorAmbient = [0.0, 0.0, 0.0, 1.0];
 	box.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
 
-	this.meshes.push(box);
+	this.models.push(box);
 
 	return box;
 }
@@ -83,34 +83,34 @@ Simple3D.prototype.render = function()
 	var u_normalMatrixLoc = gl.getUniformLocation(this.program, "u_normalMatrix");
 	var u_modelViewProjMatrixLoc = gl.getUniformLocation(this.program, "u_modelViewProjMatrix");
 
-	for (var i = 0; i < this.meshes.length; i++)
+	for (var i = 0; i < this.models.length; i++)
 	{
-		var mesh = this.meshes[i];
-		var buffer = mesh.buffer;
+		var model = this.models[i];
+		var mesh = model.mesh;
 		// Enable all of the vertex attribute arrays.
 		gl.enableVertexAttribArray(0);
 		gl.enableVertexAttribArray(1);
 		gl.enableVertexAttribArray(2);
 
 		// Set up all the vertex attributes for vertices, normals and texCoords
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexObject);
+		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexObject);
 		gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0);
 
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffer.normalObject);
+		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalObject);
 		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffer.texCoordObject);
+		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.texCoordObject);
 		gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
 
-		this.gl.uniform4fv(colorAmbientLoc, mesh.colorAmbient);
-		this.gl.uniform4fv(colorDiffuseLoc, mesh.colorDiffuse);
+		this.gl.uniform4fv(colorAmbientLoc, model.colorAmbient);
+		this.gl.uniform4fv(colorDiffuseLoc, model.colorDiffuse);
 
 		// Bind the index array
 
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer.indexObject);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexObject);
 		// Construct the normal matrix from the model-view matrix and pass it in
 		var mvMatrix = new J3DIMatrix4(worldToCameraMatrix);
-		mvMatrix.multiply(mesh.matrix);
+		mvMatrix.multiply(model.matrix);
 		var normalMatrix = new J3DIMatrix4(mvMatrix);
 		normalMatrix.invert();
 		normalMatrix.transpose();
@@ -122,10 +122,10 @@ Simple3D.prototype.render = function()
 		mvpMatrix.setUniform(gl, u_modelViewProjMatrixLoc, false);
 
 		// Bind the texture to use
-		gl.bindTexture(gl.TEXTURE_2D, mesh.spiritTexture);
+		gl.bindTexture(gl.TEXTURE_2D, model.spiritTexture);
 
 		// Draw the cube
-		gl.drawElements(gl.TRIANGLES, buffer.numIndices, gl.UNSIGNED_BYTE, 0);
+		gl.drawElements(gl.TRIANGLES, mesh.numIndices, gl.UNSIGNED_BYTE, 0);
 	}
 }
 
