@@ -64,6 +64,9 @@ Simple3D.prototype.addBox = function()
 	box.u_modelViewProjMatrixLoc =
 		    this.gl.getUniformLocation(this.program, "u_modelViewProjMatrix");
 
+	box.colorAmbient = [0.0, 0.0, 0.0, 1.0];
+	box.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
+
 	this.meshes.push(box);
 
 	return box;
@@ -77,6 +80,9 @@ Simple3D.prototype.render = function()
 
 	var worldToCameraMatrix = new J3DIMatrix4(this.camera.matrix);
 	worldToCameraMatrix.invert();
+
+	var colorAmbientLoc = gl.getUniformLocation(this.program, "colorAmbient");
+	var colorDiffuseLoc = gl.getUniformLocation(this.program, "colorDiffuse");
 
 	for (var i = 0; i < this.meshes.length; i++)
 	{
@@ -96,6 +102,9 @@ Simple3D.prototype.render = function()
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer.texCoordObject);
 		gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
+
+		this.gl.uniform4fv(colorAmbientLoc, mesh.colorAmbient);
+		this.gl.uniform4fv(colorDiffuseLoc, mesh.colorDiffuse);
 
 		// Bind the index array
 
