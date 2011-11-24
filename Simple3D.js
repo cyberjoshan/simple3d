@@ -1,3 +1,43 @@
+var vshader = "\
+	uniform mat4 u_modelViewProjMatrix; \n\
+	uniform mat4 u_normalMatrix; \n\
+	uniform vec3 lightDir; \n\
+\n\
+	attribute vec3 vNormal; \n\
+	attribute vec4 vTexCoord; \n\
+	attribute vec4 vPosition; \n\
+\n\
+	varying float v_Dot; \n\
+	varying vec2 v_texCoord; \n\
+\n\
+	void main() \n\
+	{ \n\
+		gl_Position = u_modelViewProjMatrix * vPosition; \n\
+		v_texCoord = vTexCoord.st; \n\
+		vec4 transNormal = u_normalMatrix * vec4(vNormal, 1); \n\
+		v_Dot = max(dot(transNormal.xyz, lightDir), 0.0); \n\
+	} \n\
+";
+
+var fshader = "\
+	precision mediump float; \n\
+\n\
+	uniform sampler2D sampler2d; \n\
+\n\
+	uniform vec4 colorAmbient; \n\
+	uniform vec4 colorDiffuse; \n\
+\n\
+	varying float v_Dot; \n\
+	varying vec2 v_texCoord; \n\
+\n\
+	void main() \n\
+	{ \n\
+		vec2 texCoord = vec2(v_texCoord.s, 1.0 - v_texCoord.t); \n\
+		vec4 color = /* texture2D(sampler2d, texCoord) * */ colorDiffuse; \n\
+		gl_FragColor = vec4(color.xyz * v_Dot, color.a) + vec4(colorAmbient.xyz, 0.0); \n\
+	} \n\
+";
+
 Simple3D = function(canvasid)
 {
     // Initialize
@@ -10,13 +50,13 @@ Simple3D = function(canvasid)
     this.program = simpleSetup(
         gl,
         // The ids of the vertex and fragment shaders
-        "vshader", "fshader",
+        vshader, fshader,
         // The vertex attribute names used by the shaders.
         // The order they appear here corresponds to their index
         // used later.
         [ "vNormal", "vColor", "vPosition"],
         // The clear color and depth values
-        [ 0, 0, 0.5, 1 ], 10000);
+        [ 0, 0, 0.5, 1 ], 10000, true);
 
     // Set some uniform variables for the shaders
     this.gl.uniform3f(this.gl.getUniformLocation(this.program, "lightDir"), 0, 0, 1);

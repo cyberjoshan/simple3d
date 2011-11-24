@@ -55,9 +55,20 @@ function log(msg) {
 //
 function simpleSetup(gl, vshader, fshader, attribs, clearColor, clearDepth)
 {
-    // create our shaders
-    var vertexShader = loadShader(gl, vshader);
-    var fragmentShader = loadShader(gl, fshader);
+	var vertexShader;
+	var fragmentShader;
+	
+	// create our shaders
+	if (arguments.length == 7 && arguments[6] == true)
+	{
+		vertexShader = loadShader(gl, vshader, "x-shader/x-vertex");
+		fragmentShader = loadShader(gl, fshader, "x-shader/x-fragment");
+	}
+	else
+	{
+		vertexShader = loadShader(gl, vshader);
+		fragmentShader = loadShader(gl, fshader);
+	}
 
     // Create the program object
     var program = gl.createProgram();
@@ -107,11 +118,20 @@ function simpleSetup(gl, vshader, fshader, attribs, clearColor, clearDepth)
 //
 function loadShader(ctx, shaderId)
 {
-    var shaderScript = document.getElementById(shaderId);
-    if (!shaderScript) {
-        log("*** Error: shader script '"+shaderId+"' not found");
-        return null;
-    }
+	var shaderScript = {};
+	if (arguments.length == 3)
+	{
+		shaderScript.text = shaderId;
+		shaderScript.type = arguments[2];
+	}
+	else
+	{
+		shaderScript = document.getElementById(shaderId);
+		if (!shaderScript) {
+		    log("*** Error: shader script '"+shaderId+"' not found");
+		    return null;
+		}
+	}
 
     if (shaderScript.type == "x-shader/x-vertex")
         var shaderType = ctx.VERTEX_SHADER;
