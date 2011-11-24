@@ -60,9 +60,6 @@ Simple3D.prototype.addBox = function()
 
 	// Create some matrices to use later and save their locations in the shaders
 	box.matrix = new J3DIMatrix4();
-	box.u_normalMatrixLoc = this.gl.getUniformLocation(this.program, "u_normalMatrix");
-	box.u_modelViewProjMatrixLoc =
-		    this.gl.getUniformLocation(this.program, "u_modelViewProjMatrix");
 
 	box.colorAmbient = [0.0, 0.0, 0.0, 1.0];
 	box.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
@@ -83,6 +80,8 @@ Simple3D.prototype.render = function()
 
 	var colorAmbientLoc = gl.getUniformLocation(this.program, "colorAmbient");
 	var colorDiffuseLoc = gl.getUniformLocation(this.program, "colorDiffuse");
+	var u_normalMatrixLoc = gl.getUniformLocation(this.program, "u_normalMatrix");
+	var u_modelViewProjMatrixLoc = gl.getUniformLocation(this.program, "u_modelViewProjMatrix");
 
 	for (var i = 0; i < this.meshes.length; i++)
 	{
@@ -115,12 +114,12 @@ Simple3D.prototype.render = function()
 		var normalMatrix = new J3DIMatrix4(mvMatrix);
 		normalMatrix.invert();
 		normalMatrix.transpose();
-		normalMatrix.setUniform(gl, mesh.u_normalMatrixLoc, false);
+		normalMatrix.setUniform(gl, u_normalMatrixLoc, false);
 
 		// Construct the model-view * projection matrix and pass it in
 		var mvpMatrix = new J3DIMatrix4(this.perspectiveMatrix);
 		mvpMatrix.multiply(mvMatrix);
-		mvpMatrix.setUniform(gl, mesh.u_modelViewProjMatrixLoc, false);
+		mvpMatrix.setUniform(gl, u_modelViewProjMatrixLoc, false);
 
 		// Bind the texture to use
 		gl.bindTexture(gl.TEXTURE_2D, mesh.spiritTexture);
