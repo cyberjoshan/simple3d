@@ -20,9 +20,11 @@ function main()
 	t = 0;
 	S3D = new Simple3D('canvas');
 	box1 = S3D.addBox();
-	box1.colorDiffuse = [ 1.0, 1.0, 1.0, 1.0 ];
+	box1.colorDiffuse = [ 1.0, 1.0, 1.0, 0.5 ];
+	box1.setTexture("webgl.png");
 	box2 = S3D.addSphere(8);
 	box2.colorDiffuse = [ 1.0, 1.0, 0.0, 1.0 ];
+	box2.setTexture("webgl-a.png");
 	var light = S3D.addLight();
 	light.matrix.translate(0, 10, -10);
 	var camera = S3D.addCamera();

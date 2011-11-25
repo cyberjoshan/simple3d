@@ -34,24 +34,20 @@ void main() \n\
 	vec3 N = normalize((MatNormal * vec4(vNormal, 0.0)).xyz); \n\
 	\n\
 	// Compute terms in the illumination equation \n\
-	vec4 ambient = ColorAmbient; \n\
-	ambient.w = 0.0; \n\
+	vec3 ambient = ColorAmbient.xyz; \n\
 	\n\
 	float Kd = max(dot(L, N), 0.0); \n\
-	// ColorDiffuse.w will be used for alpha \n\
-	vec4 diffuse = Kd * ColorDiffuse; \n\
-	diffuse.w = ColorDiffuse.w; \n\
+	vec3 diffuse = Kd * ColorDiffuse.xyz; \n\
 	\n\
 	float Ks = pow(max(dot(N, H), 0.0), Shininess); \n\
-	vec4 specular = Ks * ColorSpecular; \n\
-	specular.w = 0.0; \n\
+	vec3 specular = Ks * ColorSpecular.xyz; \n\
 	\n\
 	//if(dot(L, N) < 0.0) \n\
 	//	specular = vec4(0.0, 0.0, 0.0, 0.0); \n\
 	\n\
 	gl_Position = MatModelViewProjection * vPosition; \n\
 	\n\
-	color = ambient + diffuse + specular; \n\
+	color = vec4(ambient + diffuse + specular, ColorDiffuse.w); \n\
 	texCoord = vec2(vTexCoord.x, 1.0-vTexCoord.y); \n\
 } \n\
 ";
@@ -60,16 +56,35 @@ var fshader = "\
 	precision mediump float; \n\
 \n\
 	uniform sampler2D sampler2d; \n\
+	uniform int HasTexture; \n\
 	varying vec4 color; \n\
 	varying vec2 texCoord; \n\
 \n\
 	void main() \n\
 	{ \n\
-		//vec4 texcolor = texture2D(sampler2d, texCoord); \n\
-		vec4 texcolor = vec4(1.0, 1.0, 1.0, 1.0); \n\
-		gl_FragColor = color * texcolor; \n\
+		if (HasTexture != 0) \n\
+		{ \n\
+			vec4 texcolor = texture2D(sampler2d, texCoord); \n\
+			gl_FragColor.xyz = color.xyz * texcolor.xyz; \n\
+			gl_FragColor.w = 1.0 - ((1.0 - color.w) * (1.0 - texcolor.w)); \n\
+		} \n\
+		else \n\
+		{ \n\
+			gl_FragColor = color; \n\
+		} \n\
 	} \n\
 ";
+
+Model = function(gl)
+{
+	this.gl = gl;
+}
+
+Model.prototype.setTexture = function(texture)
+{
+	this.texture = loadImageTexture(this.gl, texture);
+}
+
 
 Simple3D = function(canvasid)
 {
@@ -122,14 +137,11 @@ Simple3D.prototype.addLight = function()
 
 Simple3D.prototype.addBox = function()
 {
-	var box = { };
+	var box = new Model(gl);
 	// Create a box. On return 'gl' contains a 'box' property with
 	// the BufferObjects containing the arrays for vertices,
 	// normals, texture coords, and indices.
 	box.mesh = makeBox(gl);
-
-	// Load an image to use. Returns a WebGLTexture object
-	//box.texture = loadImageTexture(gl, "spirit.jpg");
 
 	// Create some matrices to use later and save their locations in the shaders
 	box.matrix = new J3DIMatrix4();
@@ -145,11 +157,8 @@ Simple3D.prototype.addBox = function()
 
 Simple3D.prototype.addSphere = function(num_segments)
 {
-	var sphere = { };
+	var sphere = new Model(gl);
 	sphere.mesh = makeSphere(gl, 1.0, num_segments, 2*num_segments);
-
-	// Load an image to use. Returns a WebGLTexture object
-	//sphere.texture = loadImageTexture(gl, "spirit.jpg");
 
 	// Create some matrices to use later and save their locations in the shaders
 	sphere.matrix = new J3DIMatrix4();
@@ -179,6 +188,7 @@ Simple3D.prototype.render = function()
 	var u_normalMatrixLoc = gl.getUniformLocation(this.program, "MatNormal");
 	var u_modelViewMatrixLoc = gl.getUniformLocation(this.program, "MatModelView");
 	var u_modelViewProjMatrixLoc = gl.getUniformLocation(this.program, "MatModelViewProjection");
+	var u_hasTexture = gl.getUniformLocation(this.program, "HasTexture");
 
 	for (var i = 0; i < this.models.length; i++)
 	{
@@ -222,7 +232,15 @@ Simple3D.prototype.render = function()
 		mvpMatrix.setUniform(gl, u_modelViewProjMatrixLoc, false);
 
 		// Bind the texture to use
-		//gl.bindTexture(gl.TEXTURE_2D, model.texture);
+		if (model.texture != undefined)
+		{
+			gl.bindTexture(gl.TEXTURE_2D, model.texture);
+			gl.uniform1i(u_hasTexture, 1);	
+		}
+		else
+		{
+			gl.uniform1i(u_hasTexture, 0);
+		}
 
 		// Draw the cube
 		gl.drawElements(gl.TRIANGLES, mesh.numIndices, gl.UNSIGNED_SHORT, 0);
