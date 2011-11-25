@@ -742,17 +742,17 @@ J3DIMatrix4.prototype.lookat = function(eyex, eyey, eyez, centerx, centery, cent
     }
 
     matrix.$matrix.m11 = xx;
-    matrix.$matrix.m12 = xy;
-    matrix.$matrix.m13 = xz;
+    matrix.$matrix.m12 = yx;
+    matrix.$matrix.m13 = zx;
     matrix.$matrix.m14 = 0;
 
-    matrix.$matrix.m21 = yx;
+    matrix.$matrix.m21 = xy;
     matrix.$matrix.m22 = yy;
-    matrix.$matrix.m23 = yz;
+    matrix.$matrix.m23 = zy;
     matrix.$matrix.m24 = 0;
 
-    matrix.$matrix.m31 = zx;
-    matrix.$matrix.m32 = zy;
+    matrix.$matrix.m31 = xz;
+    matrix.$matrix.m32 = yz;
     matrix.$matrix.m33 = zz;
     matrix.$matrix.m34 = 0;
 
@@ -1025,9 +1025,12 @@ J3DIVector3.prototype.divide = function(divisor)
 
 J3DIVector3.prototype.cross = function(v)
 {
-    this[0] =  this[1] * v[2] - this[2] * v[1];
-    this[1] = -this[0] * v[2] + this[2] * v[0];
-    this[2] =  this[0] * v[1] - this[1] * v[0];
+	var x = this[0];
+	var y = this[1];
+	var z = this[2];
+    this[0] =  y * v[2] - z * v[1];
+    this[1] = -x * v[2] + z * v[0];
+    this[2] =  x * v[1] - y * v[0];
 }
 
 J3DIVector3.prototype.dot = function(v)
