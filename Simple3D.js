@@ -96,7 +96,7 @@ Simple3D.prototype.addBox = function()
 	box.mesh = makeBox(gl);
 
 	// Load an image to use. Returns a WebGLTexture object
-	box.spiritTexture = loadImageTexture(gl, "spirit.jpg");
+	//box.spiritTexture = loadImageTexture(gl, "spirit.jpg");
 
 	// Create some matrices to use later and save their locations in the shaders
 	box.matrix = new J3DIMatrix4();
@@ -108,6 +108,26 @@ Simple3D.prototype.addBox = function()
 
 	return box;
 }
+
+Simple3D.prototype.addSphere = function(num_segments)
+{
+	var sphere = { };
+	sphere.mesh = makeSphere(gl, 1.0, num_segments, 2*num_segments);
+
+	// Load an image to use. Returns a WebGLTexture object
+	//sphere.spiritTexture = loadImageTexture(gl, "spirit.jpg");
+
+	// Create some matrices to use later and save their locations in the shaders
+	sphere.matrix = new J3DIMatrix4();
+
+	sphere.colorAmbient = [0.0, 0.0, 0.0, 1.0];
+	sphere.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
+
+	this.models.push(sphere);
+
+	return sphere;
+}
+
 
 Simple3D.prototype.render = function()
 {
@@ -165,7 +185,7 @@ Simple3D.prototype.render = function()
 		gl.bindTexture(gl.TEXTURE_2D, model.spiritTexture);
 
 		// Draw the cube
-		gl.drawElements(gl.TRIANGLES, mesh.numIndices, gl.UNSIGNED_BYTE, 0);
+		gl.drawElements(gl.TRIANGLES, mesh.numIndices, gl.UNSIGNED_SHORT, 0);
 	}
 }
 

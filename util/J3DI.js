@@ -219,7 +219,7 @@ function makeBox(ctx)
        );
 
     // index array
-    var indices = new Uint8Array(
+    var indices = new Uint16Array(
         [  0, 1, 2,   0, 2, 3,    // front
            4, 5, 6,   4, 6, 7,    // right
            8, 9,10,   8,10,11,    // top
@@ -327,11 +327,13 @@ function makeSphere(ctx, radius, lats, longs)
     retval.vertexObject = ctx.createBuffer();
     ctx.bindBuffer(ctx.ARRAY_BUFFER, retval.vertexObject);
     ctx.bufferData(ctx.ARRAY_BUFFER, new Float32Array(geometryData), ctx.STATIC_DRAW);
+    ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
 
     retval.numIndices = indexData.length;
     retval.indexObject = ctx.createBuffer();
     ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, retval.indexObject);
     ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, new Uint16Array(indexData), ctx.STREAM_DRAW);
+    ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, null);
 
     return retval;
 }
