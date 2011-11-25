@@ -287,7 +287,7 @@ function makeSphere(ctx, radius, lats, longs)
             var y = cosTheta;
             var z = sinPhi * sinTheta;
             var u = 1-(longNumber/longs);
-            var v = latNumber/lats;
+            var v = 1-(latNumber/lats);
 
             normalData.push(x);
             normalData.push(y);

@@ -1,40 +1,73 @@
-var vshader = "\
-	uniform mat4 u_modelViewProjMatrix; \n\
-	uniform mat4 u_normalMatrix; \n\
-	uniform vec3 lightDir; \n\
+// ----------------------------------------------------------------
+// Simple3D
+// ----------------------------------------------------------------
+
+var vshader = "\n\
+attribute vec4 vPosition; \n\
+attribute vec3 vNormal; \n\
+attribute vec2 vTexCoord; \n\
+varying vec4 color; \n\
+varying vec2 texCoord; \n\
 \n\
-	attribute vec3 vNormal; \n\
-	attribute vec4 vTexCoord; \n\
-	attribute vec4 vPosition; \n\
+uniform vec4 ColorAmbient; \n\
+uniform vec4 ColorDiffuse; \n\
+uniform vec4 ColorSpecular; \n\
+uniform mat4 MatModelView; \n\
+uniform mat4 MatModelViewProjection; \n\
+uniform mat4 MatNormal; \n\
+uniform vec4 Light; \n\
+uniform float Shininess; \n\
 \n\
-	varying float v_Dot; \n\
-	varying vec2 v_texCoord; \n\
-\n\
-	void main() \n\
-	{ \n\
-		gl_Position = u_modelViewProjMatrix * vPosition; \n\
-		v_texCoord = vTexCoord.st; \n\
-		vec4 transNormal = u_normalMatrix * vec4(vNormal, 1); \n\
-		v_Dot = max(dot(transNormal.xyz, lightDir), 0.0); \n\
-	} \n\
+void main() \n\
+{ \n\
+	// Transform vertex position into eye coordinates \n\
+	vec3 pos = (MatModelView * vPosition).xyz; \n\
+	\n\
+	vec3 L = Light.xyz - pos; \n\
+	if (Light.w == 0.0) \n\
+		L = -Light.xyz; \n\
+	L = normalize(L); \n\
+	vec3 E = normalize(-pos); \n\
+	vec3 H = normalize(L + E); \n\
+	\n\
+	// Transform vertex normal into eye coordinates \n\
+	vec3 N = normalize((MatNormal * vec4(vNormal, 0.0)).xyz); \n\
+	\n\
+	// Compute terms in the illumination equation \n\
+	vec4 ambient = ColorAmbient; \n\
+	ambient.w = 0.0; \n\
+	\n\
+	float Kd = max(dot(L, N), 0.0); \n\
+	// ColorDiffuse.w will be used for alpha \n\
+	vec4 diffuse = Kd * ColorDiffuse; \n\
+	diffuse.w = ColorDiffuse.w; \n\
+	\n\
+	float Ks = pow(max(dot(N, H), 0.0), Shininess); \n\
+	vec4 specular = Ks * ColorSpecular; \n\
+	specular.w = 0.0; \n\
+	\n\
+	//if(dot(L, N) < 0.0) \n\
+	//	specular = vec4(0.0, 0.0, 0.0, 0.0); \n\
+	\n\
+	gl_Position = MatModelViewProjection * vPosition; \n\
+	\n\
+	color = ambient + diffuse + specular; \n\
+	texCoord = vec2(vTexCoord.x, 1.0-vTexCoord.y); \n\
+} \n\
 ";
 
 var fshader = "\
 	precision mediump float; \n\
 \n\
 	uniform sampler2D sampler2d; \n\
-\n\
-	uniform vec4 colorAmbient; \n\
-	uniform vec4 colorDiffuse; \n\
-\n\
-	varying float v_Dot; \n\
-	varying vec2 v_texCoord; \n\
+	varying vec4 color; \n\
+	varying vec2 texCoord; \n\
 \n\
 	void main() \n\
 	{ \n\
-		vec2 texCoord = vec2(v_texCoord.s, 1.0 - v_texCoord.t); \n\
-		vec4 color = /* texture2D(sampler2d, texCoord) * */ colorDiffuse; \n\
-		gl_FragColor = vec4(color.xyz * v_Dot, color.a) + vec4(colorAmbient.xyz, 0.0); \n\
+		//vec4 texcolor = texture2D(sampler2d, texCoord); \n\
+		vec4 texcolor = vec4(1.0, 1.0, 1.0, 1.0); \n\
+		gl_FragColor = color * texcolor; \n\
 	} \n\
 ";
 
@@ -59,15 +92,15 @@ Simple3D = function(canvasid)
         [ 0, 0, 0.5, 1 ], 10000, true);
 
     // Set some uniform variables for the shaders
-    this.gl.uniform3f(this.gl.getUniformLocation(this.program, "lightDir"), 0, 0, 1);
+    this.gl.uniform4f(this.gl.getUniformLocation(this.program, "Light"), -1, -1, -1, 0);
     this.gl.uniform1i(this.gl.getUniformLocation(this.program, "sampler2d"), 0);
+    this.gl.uniform1f(this.gl.getUniformLocation(this.program, "Shininess"), 1.0);
 
     this.canvas = document.getElementById(canvasid);
 
 	this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 	this.perspectiveMatrix = new J3DIMatrix4();
 	this.perspectiveMatrix.perspective(30, this.canvas.width / this.canvas.height, 1, 10000);
-	//this.perspectiveMatrix.lookat(0, 0, 7, 0, 0, 0, 0, 1, 0);
 
 	this.models = [];
 }
@@ -96,13 +129,14 @@ Simple3D.prototype.addBox = function()
 	box.mesh = makeBox(gl);
 
 	// Load an image to use. Returns a WebGLTexture object
-	//box.spiritTexture = loadImageTexture(gl, "spirit.jpg");
+	//box.texture = loadImageTexture(gl, "spirit.jpg");
 
 	// Create some matrices to use later and save their locations in the shaders
 	box.matrix = new J3DIMatrix4();
 
 	box.colorAmbient = [0.0, 0.0, 0.0, 1.0];
 	box.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
+	box.colorSpecular = [0.0, 0.0, 0.0, 1.0];
 
 	this.models.push(box);
 
@@ -115,13 +149,14 @@ Simple3D.prototype.addSphere = function(num_segments)
 	sphere.mesh = makeSphere(gl, 1.0, num_segments, 2*num_segments);
 
 	// Load an image to use. Returns a WebGLTexture object
-	//sphere.spiritTexture = loadImageTexture(gl, "spirit.jpg");
+	//sphere.texture = loadImageTexture(gl, "spirit.jpg");
 
 	// Create some matrices to use later and save their locations in the shaders
 	sphere.matrix = new J3DIMatrix4();
 
 	sphere.colorAmbient = [0.0, 0.0, 0.0, 1.0];
 	sphere.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
+	sphere.colorSpecular = [0.0, 0.0, 0.0, 1.0];
 
 	this.models.push(sphere);
 
@@ -138,10 +173,12 @@ Simple3D.prototype.render = function()
 	var worldToCameraMatrix = new J3DIMatrix4(this.camera.matrix);
 	worldToCameraMatrix.invert();
 
-	var colorAmbientLoc = gl.getUniformLocation(this.program, "colorAmbient");
-	var colorDiffuseLoc = gl.getUniformLocation(this.program, "colorDiffuse");
-	var u_normalMatrixLoc = gl.getUniformLocation(this.program, "u_normalMatrix");
-	var u_modelViewProjMatrixLoc = gl.getUniformLocation(this.program, "u_modelViewProjMatrix");
+	var colorAmbientLoc = gl.getUniformLocation(this.program, "ColorAmbient");
+	var colorDiffuseLoc = gl.getUniformLocation(this.program, "ColorDiffuse");
+	var colorSpecularLoc = gl.getUniformLocation(this.program, "ColorSpecular");
+	var u_normalMatrixLoc = gl.getUniformLocation(this.program, "MatNormal");
+	var u_modelViewMatrixLoc = gl.getUniformLocation(this.program, "MatModelView");
+	var u_modelViewProjMatrixLoc = gl.getUniformLocation(this.program, "MatModelViewProjection");
 
 	for (var i = 0; i < this.models.length; i++)
 	{
@@ -162,15 +199,18 @@ Simple3D.prototype.render = function()
 		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.texCoordObject);
 		gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
 
-		this.gl.uniform4fv(colorAmbientLoc, model.colorAmbient);
-		this.gl.uniform4fv(colorDiffuseLoc, model.colorDiffuse);
+		gl.uniform4fv(colorAmbientLoc, model.colorAmbient);
+		gl.uniform4fv(colorDiffuseLoc, model.colorDiffuse);
+		gl.uniform4fv(colorSpecularLoc, model.colorSpecular);
 
 		// Bind the index array
-
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexObject);
-		// Construct the normal matrix from the model-view matrix and pass it in
+		
 		var mvMatrix = new J3DIMatrix4(worldToCameraMatrix);
 		mvMatrix.multiply(model.matrix);
+		mvMatrix.setUniform(gl, u_modelViewMatrixLoc, false);
+
+		// Construct the normal matrix from the model-view matrix and pass it in
 		var normalMatrix = new J3DIMatrix4(mvMatrix);
 		normalMatrix.invert();
 		normalMatrix.transpose();
@@ -182,7 +222,7 @@ Simple3D.prototype.render = function()
 		mvpMatrix.setUniform(gl, u_modelViewProjMatrixLoc, false);
 
 		// Bind the texture to use
-		gl.bindTexture(gl.TEXTURE_2D, model.spiritTexture);
+		//gl.bindTexture(gl.TEXTURE_2D, model.texture);
 
 		// Draw the cube
 		gl.drawElements(gl.TRIANGLES, mesh.numIndices, gl.UNSIGNED_SHORT, 0);
