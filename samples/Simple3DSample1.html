@@ -2,7 +2,7 @@
 
 <script type="text/javascript" src="../util/webgl-utils.js"></script>
 <script type="text/javascript" src="../util/J3DI.js"> </script>
-<script type="text/javascript" src="../util/J3DIMath.js"> </script>
+<script type="text/javascript" src="../util/gl-matrix.js"> </script>
 <script type="text/javascript" src="../Simple3D.js"> </script>
 
 <script type="text/javascript">
@@ -17,12 +17,12 @@ var t;
 function update(dt)
 {
 	t += dt;
-	box.matrix.makeIdentity();
-	box.matrix.translate([-Math.sin(t) - 3.0, 0.0, 0.0]);
-	box.matrix.rotate(t * 50, [0.0, 1.0, 0.0]);
-	sphere.matrix.makeIdentity();
-	sphere.matrix.translate([Math.sin(t) + 3.0, 0.0, 0.0]);
-	sphere.matrix.rotate(t * 50, [0.0, 1.0, 0.0]);
+	mat4.identity(box.matrix);
+	mat4.translate(box.matrix, [-Math.sin(t*1.2) - 2.4, 0.0, 0.0]);
+	mat4.rotateY(box.matrix, t);
+	mat4.identity(sphere.matrix);
+	mat4.translate(sphere.matrix, [Math.sin(t*1.2) + 2.4, 0.0, 0.0]);
+	mat4.rotateY(sphere.matrix, t);
 }
 
 function main()
@@ -36,8 +36,8 @@ function main()
 	var light = S3D.addLight();
 	light.pos = [0, 10, -10, 1];
 	camera = S3D.addCamera();
-	camera.matrix.translate(0, 2, 10);
-	camera.matrix.rotate(-10, [1, 0, 0]);
+	mat4.translate(camera.matrix, [0, 2, 8]);
+	mat4.rotateX(camera.matrix, -0.2);
 	S3D.run(update);
 }
 

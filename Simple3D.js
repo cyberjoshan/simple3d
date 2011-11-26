@@ -114,8 +114,7 @@ Simple3D = function(canvasid)
     this.canvas = document.getElementById(canvasid);
 
 	this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-	this.perspectiveMatrix = new J3DIMatrix4();
-	this.perspectiveMatrix.perspective(50, this.canvas.width / this.canvas.height, 1, 10000);
+	this.perspectiveMatrix = mat4.perspective(45, this.canvas.width / this.canvas.height, 1, 10000);
 
 	this.models = [];
 }
@@ -125,7 +124,7 @@ Simple3D.prototype.addCamera = function()
 	if (this.camera != undefined)
 		log("Simple3D: Only one camera is currently supported. Replacing camera.");
 	this.camera = {};
-	this.camera.matrix = new J3DIMatrix4();
+	this.camera.matrix = mat4.identity();
 	return this.camera;
 }
 
@@ -134,7 +133,7 @@ Simple3D.prototype.addLight = function()
 	if (this.light != undefined)
 		log("Simple3D: Only one light is currently supported. Replacing light.");
 	this.light = {};
-	this.light.matrix = new J3DIMatrix4();
+	this.light.matrix = mat4.identity();
 	return this.light;
 }
 
@@ -147,8 +146,8 @@ Simple3D.prototype.addBox = function()
 	box.mesh = makeBox(gl);
 
 	// Create some matrices to use later and save their locations in the shaders
-	box.matrix = new J3DIMatrix4();
-
+	box.matrix = mat4.identity();
+	
 	box.colorAmbient = [0.0, 0.0, 0.0, 1.0];
 	box.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
 	box.colorSpecular = [0.0, 0.0, 0.0, 1.0];
@@ -164,8 +163,8 @@ Simple3D.prototype.addSphere = function(num_segments)
 	sphere.mesh = makeSphere(gl, 1.0, num_segments, 2*num_segments);
 
 	// Create some matrices to use later and save their locations in the shaders
-	sphere.matrix = new J3DIMatrix4();
-
+	sphere.matrix = mat4.identity();
+	
 	sphere.colorAmbient = [0.0, 0.0, 0.0, 1.0];
 	sphere.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
 	sphere.colorSpecular = [0.0, 0.0, 0.0, 1.0];
@@ -188,8 +187,8 @@ Simple3D.prototype.render = function()
 		return;
 	}
 
-	var worldToCameraMatrix = new J3DIMatrix4(this.camera.matrix);
-	worldToCameraMatrix.invert();
+	var worldToCameraMatrix = mat4.create();
+	mat4.inverse(this.camera.matrix, worldToCameraMatrix);
 
 	var colorAmbientLoc = gl.getUniformLocation(this.program, "ColorAmbient");
 	var colorDiffuseLoc = gl.getUniformLocation(this.program, "ColorDiffuse");
@@ -225,20 +224,20 @@ Simple3D.prototype.render = function()
 		// Bind the index array
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexObject);
 		
-		var mvMatrix = new J3DIMatrix4(worldToCameraMatrix);
-		mvMatrix.multiply(model.matrix);
-		mvMatrix.setUniform(gl, u_modelViewMatrixLoc, false);
+		var mvMatrix = mat4.create();
+		mat4.multiply(worldToCameraMatrix, model.matrix, mvMatrix);
+		gl.uniformMatrix4fv(u_modelViewMatrixLoc, false, mvMatrix);
 
 		// Construct the normal matrix from the model-view matrix and pass it in
-		var normalMatrix = new J3DIMatrix4(mvMatrix);
-		normalMatrix.invert();
-		normalMatrix.transpose();
-		normalMatrix.setUniform(gl, u_normalMatrixLoc, false);
+		var normalMatrix = mat4.create();
+		mat4.inverse(mvMatrix, normalMatrix);
+		mat4.transpose(normalMatrix);
+		gl.uniformMatrix4fv(u_normalMatrixLoc, false, normalMatrix);
 
 		// Construct the model-view * projection matrix and pass it in
-		var mvpMatrix = new J3DIMatrix4(this.perspectiveMatrix);
-		mvpMatrix.multiply(mvMatrix);
-		mvpMatrix.setUniform(gl, u_modelViewProjMatrixLoc, false);
+		var mvpMatrix = mat4.create();
+		mat4.multiply(this.perspectiveMatrix, mvMatrix, mvpMatrix);
+		gl.uniformMatrix4fv(u_modelViewProjMatrixLoc, false, mvpMatrix);
 
 		// Bind the texture to use
 		if (model.texture != undefined)
