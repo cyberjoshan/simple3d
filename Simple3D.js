@@ -115,14 +115,15 @@ Simple3D = function(canvasid)
 
 	this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 	this.perspectiveMatrix = new J3DIMatrix4();
-	this.perspectiveMatrix.perspective(30, this.canvas.width / this.canvas.height, 1, 10000);
+	this.perspectiveMatrix.perspective(50, this.canvas.width / this.canvas.height, 1, 10000);
 
 	this.models = [];
 }
 
-
 Simple3D.prototype.addCamera = function()
 {
+	if (this.camera != undefined)
+		log("Simple3D: Only one camera is currently supported. Replacing camera.");
 	this.camera = {};
 	this.camera.matrix = new J3DIMatrix4();
 	return this.camera;
@@ -130,6 +131,8 @@ Simple3D.prototype.addCamera = function()
 
 Simple3D.prototype.addLight = function()
 {
+	if (this.light != undefined)
+		log("Simple3D: Only one light is currently supported. Replacing light.");
 	this.light = {};
 	this.light.matrix = new J3DIMatrix4();
 	return this.light;
@@ -178,6 +181,12 @@ Simple3D.prototype.render = function()
 	var gl = this.gl;
 	// Clear the canvas
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+	if (this.camera == undefined)
+	{
+		log("Simple3D: No camera.");
+		return;
+	}
 
 	var worldToCameraMatrix = new J3DIMatrix4(this.camera.matrix);
 	worldToCameraMatrix.invert();
