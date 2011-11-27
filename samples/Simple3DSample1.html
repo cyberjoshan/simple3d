@@ -7,11 +7,7 @@
 
 <script type="text/javascript">
 
-var S3D;
-var box;
-var sphere;
-var camera;
-
+var S3D, box, sphere;
 var t;
 
 function update(dt)
@@ -23,6 +19,8 @@ function update(dt)
 	mat4.identity(sphere.matrix);
 	mat4.translate(sphere.matrix, [Math.sin(t*1.2) + 2.4, 0.0, 0.0]);
 	mat4.rotateY(sphere.matrix, t);
+	var camera = S3D.getCamera();
+	camera.setPosition([0, 2, 8 + 2*Math.sin(t*0.5)]);
 }
 
 function main()
@@ -34,8 +32,8 @@ function main()
 	sphere = S3D.addSphere(8);
 	sphere.colorDiffuse = [ 1.0, 1.0, 0.0, 1.0 ];
 	var light = S3D.addLight();
-	light.pos = [0, 10, -10, 1];
-	camera = S3D.addCamera();
+	light.setPosition([-3, 10, 10]);
+	var camera = S3D.addCamera();
 	mat4.translate(camera.matrix, [0, 2, 8]);
 	mat4.rotateX(camera.matrix, -0.2);
 	S3D.run(update);

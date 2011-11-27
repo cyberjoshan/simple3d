@@ -78,11 +78,36 @@ var fshader = "\
 Model = function(gl)
 {
 	this.gl = gl;
+	this.matrix = mat4.identity();
 }
 
 Model.prototype.setTexture = function(texture)
 {
 	this.texture = loadImageTexture(this.gl, texture);
+}
+
+Model.prototype.getPosition = function()
+{
+	return vec3.create([this.matrix[12], this.matrix[13], this.matrix[14]]); 
+}
+
+Model.prototype.setPosition = function(v)
+{
+	this.matrix[12] = v[0];
+	this.matrix[13] = v[1];
+	this.matrix[14] = v[2];
+}
+
+Model.prototype.getOrientation = function()
+{
+	return mat4.toRotationMat(this.matrix); 
+}
+
+Model.prototype.setOrientation = function(m)
+{
+	this.matrix[0] = m[0]; this.matrix[1] = m[1]; this.matrix[2]  = m[2];
+	this.matrix[4] = m[3]; this.matrix[5] = m[4]; this.matrix[6]  = m[5];
+	this.matrix[8] = m[6]; this.matrix[9] = m[7]; this.matrix[10] = m[8];
 }
 
 
@@ -107,7 +132,7 @@ Simple3D = function(canvasid)
         [ 0, 0, 0.5, 1 ], 10000, true);
 
     // Set some uniform variables for the shaders
-    this.gl.uniform4f(this.gl.getUniformLocation(this.program, "Light"), -1, -1, -1, 0);
+    //this.gl.uniform4f(this.gl.getUniformLocation(this.program, "Light"), -1, -1, -1, 0);
     this.gl.uniform1i(this.gl.getUniformLocation(this.program, "sampler2d"), 0);
     this.gl.uniform1f(this.gl.getUniformLocation(this.program, "Shininess"), 1.0);
 
@@ -123,8 +148,12 @@ Simple3D.prototype.addCamera = function()
 {
 	if (this.camera != undefined)
 		log("Simple3D: Only one camera is currently supported. Replacing camera.");
-	this.camera = {};
-	this.camera.matrix = mat4.identity();
+	this.camera = new Model();
+	return this.camera;
+}
+
+Simple3D.prototype.getCamera = function()
+{
 	return this.camera;
 }
 
@@ -132,8 +161,7 @@ Simple3D.prototype.addLight = function()
 {
 	if (this.light != undefined)
 		log("Simple3D: Only one light is currently supported. Replacing light.");
-	this.light = {};
-	this.light.matrix = mat4.identity();
+	this.light = new Model();
 	return this.light;
 }
 
@@ -144,9 +172,6 @@ Simple3D.prototype.addBox = function()
 	// the BufferObjects containing the arrays for vertices,
 	// normals, texture coords, and indices.
 	box.mesh = makeBox(gl);
-
-	// Create some matrices to use later and save their locations in the shaders
-	box.matrix = mat4.identity();
 	
 	box.colorAmbient = [0.0, 0.0, 0.0, 1.0];
 	box.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
@@ -161,9 +186,6 @@ Simple3D.prototype.addSphere = function(num_segments)
 {
 	var sphere = new Model(gl);
 	sphere.mesh = makeSphere(gl, 1.0, num_segments, 2*num_segments);
-
-	// Create some matrices to use later and save their locations in the shaders
-	sphere.matrix = mat4.identity();
 	
 	sphere.colorAmbient = [0.0, 0.0, 0.0, 1.0];
 	sphere.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
@@ -197,6 +219,10 @@ Simple3D.prototype.render = function()
 	var u_modelViewMatrixLoc = gl.getUniformLocation(this.program, "MatModelView");
 	var u_modelViewProjMatrixLoc = gl.getUniformLocation(this.program, "MatModelViewProjection");
 	var u_hasTexture = gl.getUniformLocation(this.program, "HasTexture");
+
+	var lightPos = this.light.getPosition();
+	mat4.multiplyVec3(worldToCameraMatrix, lightPos);
+	gl.uniform4f(gl.getUniformLocation(this.program, "Light"), lightPos[0], lightPos[1], lightPos[2], 1);
 
 	for (var i = 0; i < this.models.length; i++)
 	{
