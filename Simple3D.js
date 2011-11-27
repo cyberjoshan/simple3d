@@ -1,6 +1,28 @@
-// ----------------------------------------------------------------
+// -----------------------------------------------------------------------
 // Simple3D
-// ----------------------------------------------------------------
+// -----------------------------------------------------------------------
+
+/*
+Copyright (c) 2011 Eduardo Poyart.
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+*/
 
 var vshader = "\n\
 attribute vec4 vPosition; \n\
@@ -113,35 +135,32 @@ Model.prototype.setOrientation = function(m)
 
 Simple3D = function(canvasid)
 {
-    // Initialize
-    this.gl = initWebGL(
-        // The id of the Canvas Element
-        canvasid);
-    if (!this.gl) {
-      return NULL;
-    }
-    this.program = simpleSetup(
-        gl,
-        // The ids of the vertex and fragment shaders
-        vshader, fshader,
-        // The vertex attribute names used by the shaders.
-        // The order they appear here corresponds to their index
-        // used later.
-        [ "vNormal", "vColor", "vPosition"],
-        // The clear color and depth values
-        [ 0, 0, 0.5, 1 ], 10000, true);
+	this.gl = initWebGL(canvasid);
+	if (!this.gl)
+		return NULL;
+	this.program = simpleSetup(
+		gl, vshader, fshader,
+		// The vertex attribute names used by the shaders.
+		// The order they appear here corresponds to their index
+		// used later.
+		[ "vNormal", "vColor", "vPosition"],
+		// The clear color and depth values
+		[ 0, 0, 0, 1 ], 10000, true);
 
-    // Set some uniform variables for the shaders
-    //this.gl.uniform4f(this.gl.getUniformLocation(this.program, "Light"), -1, -1, -1, 0);
-    this.gl.uniform1i(this.gl.getUniformLocation(this.program, "sampler2d"), 0);
-    this.gl.uniform1f(this.gl.getUniformLocation(this.program, "Shininess"), 1.0);
+	this.gl.uniform1i(this.gl.getUniformLocation(this.program, "sampler2d"), 0);
+	this.gl.uniform1f(this.gl.getUniformLocation(this.program, "Shininess"), 1.0);
 
-    this.canvas = document.getElementById(canvasid);
+	this.canvas = document.getElementById(canvasid);
 
 	this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 	this.perspectiveMatrix = mat4.perspective(45, this.canvas.width / this.canvas.height, 1, 10000);
 
 	this.models = [];
+}
+
+Simple3D.prototype.setClearColor = function(c)
+{
+	this.gl.clearColor(c[0], c[1], c[2], c[3]);
 }
 
 Simple3D.prototype.addCamera = function()
@@ -168,9 +187,6 @@ Simple3D.prototype.addLight = function()
 Simple3D.prototype.addBox = function()
 {
 	var box = new Model(gl);
-	// Create a box. On return 'gl' contains a 'box' property with
-	// the BufferObjects containing the arrays for vertices,
-	// normals, texture coords, and indices.
 	box.mesh = makeBox(gl);
 	
 	box.colorAmbient = [0.0, 0.0, 0.0, 1.0];
@@ -200,7 +216,6 @@ Simple3D.prototype.addSphere = function(num_segments)
 Simple3D.prototype.render = function()
 {
 	var gl = this.gl;
-	// Clear the canvas
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 	if (this.camera == undefined)
@@ -228,12 +243,10 @@ Simple3D.prototype.render = function()
 	{
 		var model = this.models[i];
 		var mesh = model.mesh;
-		// Enable all of the vertex attribute arrays.
 		gl.enableVertexAttribArray(0);
 		gl.enableVertexAttribArray(1);
 		gl.enableVertexAttribArray(2);
 
-		// Set up all the vertex attributes for vertices, normals and texCoords
 		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexObject);
 		gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0);
 
@@ -247,25 +260,21 @@ Simple3D.prototype.render = function()
 		gl.uniform4fv(colorDiffuseLoc, model.colorDiffuse);
 		gl.uniform4fv(colorSpecularLoc, model.colorSpecular);
 
-		// Bind the index array
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexObject);
 		
 		var mvMatrix = mat4.create();
 		mat4.multiply(worldToCameraMatrix, model.matrix, mvMatrix);
 		gl.uniformMatrix4fv(u_modelViewMatrixLoc, false, mvMatrix);
 
-		// Construct the normal matrix from the model-view matrix and pass it in
 		var normalMatrix = mat4.create();
 		mat4.inverse(mvMatrix, normalMatrix);
 		mat4.transpose(normalMatrix);
 		gl.uniformMatrix4fv(u_normalMatrixLoc, false, normalMatrix);
 
-		// Construct the model-view * projection matrix and pass it in
 		var mvpMatrix = mat4.create();
 		mat4.multiply(this.perspectiveMatrix, mvMatrix, mvpMatrix);
 		gl.uniformMatrix4fv(u_modelViewProjMatrixLoc, false, mvpMatrix);
 
-		// Bind the texture to use
 		if (model.texture != undefined)
 		{
 			gl.bindTexture(gl.TEXTURE_2D, model.texture);
@@ -276,7 +285,6 @@ Simple3D.prototype.render = function()
 			gl.uniform1i(u_hasTexture, 0);
 		}
 
-		// Draw the cube
 		gl.drawElements(gl.TRIANGLES, mesh.numIndices, gl.UNSIGNED_SHORT, 0);
 	}
 }

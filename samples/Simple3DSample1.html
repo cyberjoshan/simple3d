@@ -1,5 +1,10 @@
 <html><head>
 
+<!-- ---------------------------------------------------------------------
+Simple3D Sample 1
+Copyright (c) 2011 Eduardo Poyart. See Simple3D.js for license.
+---------------------------------------------------------------------- -->
+
 <script type="text/javascript" src="../util/webgl-utils.js"></script>
 <script type="text/javascript" src="../util/J3DI.js"> </script>
 <script type="text/javascript" src="../util/gl-matrix.js"> </script>
@@ -19,18 +24,19 @@ function update(dt)
 	mat4.identity(sphere.matrix);
 	mat4.translate(sphere.matrix, [Math.sin(t*1.2) + 2.4, 0.0, 0.0]);
 	mat4.rotateY(sphere.matrix, t);
-	var camera = S3D.getCamera();
-	camera.setPosition([0, 2, 8 + 2*Math.sin(t*0.5)]);
 }
 
 function main()
 {
 	t = 0;
 	S3D = new Simple3D('canvas');
+	S3D.setClearColor([0.0, 0.2, 0.4, 1.0]);
 	box = S3D.addBox();
-	box.colorDiffuse = [ 1.0, 0.0, 1.0, 1.0 ];
+	box.colorAmbient = [ 0.0, 0.1, 0.1, 1.0 ];
+	box.colorDiffuse = [ 0.0, 0.9, 0.9, 1.0 ];
 	sphere = S3D.addSphere(8);
-	sphere.colorDiffuse = [ 1.0, 1.0, 0.0, 1.0 ];
+	sphere.colorAmbient = [ 0.1, 0.1, 0.0, 1.0 ];
+	sphere.colorDiffuse = [ 0.9, 0.9, 0.0, 1.0 ];
 	var light = S3D.addLight();
 	light.setPosition([-3, 10, 10]);
 	var camera = S3D.addCamera();
