@@ -132,6 +132,31 @@ Model.prototype.setOrientation = function(m)
 	this.matrix[8] = m[6]; this.matrix[9] = m[7]; this.matrix[10] = m[8];
 }
 
+Model.prototype.setVertex = function(idx, v)
+{
+	var gl = this.gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.mesh.vertexObject);
+	this.mesh.vertices[idx*3  ] = v[0];
+	this.mesh.vertices[idx*3+1] = v[1];
+	this.mesh.vertices[idx*3+2] = v[2];
+    gl.bufferData(gl.ARRAY_BUFFER, this.mesh.vertices, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+}
+
+Model.prototype.setVertices = function(idx1, v)
+{
+	var gl = this.gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.mesh.vertexObject);
+    var idx2 = idx1 + v.length;
+    for (var i = idx1; i < idx2; i++)
+    {
+		this.mesh.vertices[i*3  ] = v[i][0];
+		this.mesh.vertices[i*3+1] = v[i][1];
+		this.mesh.vertices[i*3+2] = v[i][2];
+	}
+    gl.bufferData(gl.ARRAY_BUFFER, this.mesh.vertices, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+}
 
 Simple3D = function(canvasid)
 {
@@ -153,7 +178,7 @@ Simple3D = function(canvasid)
 	this.canvas = document.getElementById(canvasid);
 
 	this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-	this.perspectiveMatrix = mat4.perspective(45, this.canvas.width / this.canvas.height, 1, 10000);
+	this.perspectiveMatrix = mat4.perspective(40, this.canvas.width / this.canvas.height, 0.1, 10000);
 
 	this.models = [];
 }
@@ -210,6 +235,90 @@ Simple3D.prototype.addSphere = function(num_segments)
 	this.models.push(sphere);
 
 	return sphere;
+}
+
+function setBuffers(gl, model, vertices, normals, texCoords, indices)
+{
+	model.mesh = {};
+	model.mesh.vertices = vertices;
+
+	model.mesh.normalObject = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, model.mesh.normalObject);
+	gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+
+	model.mesh.texCoordObject = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, model.mesh.texCoordObject);
+	gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
+
+	model.mesh.vertexObject = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, model.mesh.vertexObject);
+	gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+	model.mesh.indexObject = gl.createBuffer();
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.mesh.indexObject);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+	model.mesh.numIndices = indices.length;
+}
+
+
+Simple3D.prototype.addQuadXY = function()
+{
+	var gl = this.gl;
+	var quad = new Model(gl);
+	var vertices = new Float32Array(
+		[  -1,-1, 0,   1,-1, 0,   1, 1, 0,  -1, 1, 0 ] );
+
+	var normals = new Float32Array(
+		[   0, 0, 1,   0, 0, 1,   0, 0, 1,   0, 0, 1 ] );
+
+	var texCoords = new Float32Array(
+		[  0, 0,   1, 0,   1, 1,   0, 1 ] );
+
+	// index array
+	var indices = new Uint16Array(
+		[  0, 1, 2,   0, 2, 3 ] );
+
+	setBuffers(gl, quad, vertices, normals, texCoords, indices);
+	
+	quad.colorAmbient = [0.0, 0.0, 0.0, 1.0];
+	quad.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
+	quad.colorSpecular = [0.0, 0.0, 0.0, 1.0];
+
+	this.models.push(quad);
+
+	return quad;
+}
+
+Simple3D.prototype.addTriangleXY = function()
+{
+	var gl = this.gl;
+	var tri = new Model(gl);
+	var vertices = new Float32Array(
+		[  -1,-1, 0,   1,-1, 0,   0, 1, 0 ] );
+
+	var normals = new Float32Array(
+		[   0, 0, 1,   0, 0, 1,   0, 0, 1 ] );
+
+	var texCoords = new Float32Array(
+		[  0, 0,   1, 0,   0.5, 1  ] );
+
+	// index array
+	var indices = new Uint16Array(
+		[  0, 1, 2 ] );
+
+	setBuffers(gl, tri, vertices, normals, texCoords, indices);
+	
+	tri.colorAmbient = [0.0, 0.0, 0.0, 1.0];
+	tri.colorDiffuse = [1.0, 1.0, 1.0, 1.0];
+	tri.colorSpecular = [0.0, 0.0, 0.0, 1.0];
+
+	this.models.push(tri);
+
+	return tri;
 }
 
 
@@ -299,5 +408,94 @@ Simple3D.prototype.run = function(updateFunc)
 		window.requestAnimFrame(f, S3D_ref.canvasid);
 	};
 	f();
+}
+
+Simple3D.prototype.getCanvasPos = function()
+{
+    var curleft = curtop = 0;
+    var obj = this.canvas;
+
+    if (obj.offsetParent) 
+    {
+        do 
+        {
+            curleft += obj.offsetLeft - obj.scrollLeft;
+            curtop += obj.offsetTop - obj.scrollTop;
+        } while (obj = obj.offsetParent);
+    }
+    return [curleft, curtop];
+}
+
+function raySphereIntersection(ray, spherec, spherer)
+{
+	var lc = vec3.dot(ray, spherec);
+	var c2 = vec3.dot(spherec, spherec);
+	var r2 = spherer * spherer;
+	var det = lc * lc - c2 + r2;
+	if (det < 0)
+		return [false, 0, 0];
+	var sqrtdet = Math.sqrt(det);
+	return [true, lc - sqrtdet, lc + sqrtdet];
+}
+
+Simple3D.prototype.toNormalizedCoordinates = function(x, y)
+{
+	var offset = this.getCanvasPos();
+	var xx = x - offset[0];
+	var yy = this.canvas.height - (y - offset[1]);
+	var xn = (2 * xx / this.canvas.width) - 1;
+	var yn = (2 * yy / this.canvas.height) - 1;
+	return [xn, yn];
+}
+
+Simple3D.prototype.pick = function(x, y, r)
+{
+	var xn = this.toNormalizedCoordinates(x, y);
+	//log(" " + xn[0] + " " + xn[1] + "\n");
+
+	var worldToCameraMatrix = mat4.create();
+	mat4.inverse(this.camera.matrix, worldToCameraMatrix);
+
+	var invPerspMatrix = mat4.create();
+	mat4.inverse(this.perspectiveMatrix, invPerspMatrix);
+	
+	var xScreen = vec3.create([xn[0], xn[1], 1]);
+	var xCamera = vec3.create();
+	mat4.multiplyVec3(invPerspMatrix, xScreen, xCamera);
+	vec3.normalize(xCamera);
+
+	//log(" " + xCamera[0] + " " + xCamera[1] + " " + xCamera[2]);
+	
+	for (var i = 0; i < this.models.length; i++)
+	{
+		var model = this.models[i];
+		if (model.canPick)
+		{
+			var c = model.getPosition();
+			mat4.multiplyVec3(worldToCameraMatrix, c);
+			var inter = raySphereIntersection(xCamera, c, r);
+			if (inter[0])
+				return model;
+		}
+	}
+	return undefined;
+}
+
+Simple3D.prototype.projectToCamera = function(x, y)
+{
+	var xn = this.toNormalizedCoordinates(x, y);
+	var pn = vec3.create([xn[0], xn[1], 1]);
+	var invPerspMatrix = mat4.create();
+	mat4.inverse(this.perspectiveMatrix, invPerspMatrix);
+	var result = vec3.create();
+	mat4.multiplyVec3(invPerspMatrix, pn, result);
+	return result;
+}
+
+Simple3D.prototype.projectToWorld = function(x, y)
+{
+	var result = projectToCamera(x, y);
+	mat4.multiplyVec3(this.camera.matrix, result);
+	return result;
 }
 
