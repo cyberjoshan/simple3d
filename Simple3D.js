@@ -101,6 +101,7 @@ Model = function(gl)
 {
 	this.gl = gl;
 	this.matrix = mat4.identity();
+    this.pickRadius = 0;
 }
 
 Model.prototype.setTexture = function(texture)
@@ -448,7 +449,7 @@ Simple3D.prototype.toNormalizedCoordinates = function(x, y)
 	return [xn, yn];
 }
 
-Simple3D.prototype.pick = function(x, y, r)
+Simple3D.prototype.pick = function(x, y)
 {
 	var xn = this.toNormalizedCoordinates(x, y);
 	//log(" " + xn[0] + " " + xn[1] + "\n");
@@ -469,11 +470,11 @@ Simple3D.prototype.pick = function(x, y, r)
 	for (var i = 0; i < this.models.length; i++)
 	{
 		var model = this.models[i];
-		if (model.canPick)
+		if (model.pickRadius > 0)
 		{
 			var c = model.getPosition();
 			mat4.multiplyVec3(worldToCameraMatrix, c);
-			var inter = raySphereIntersection(xCamera, c, r);
+			var inter = raySphereIntersection(xCamera, c, model.pickRadius);
 			if (inter[0])
 				return model;
 		}
